@@ -1,96 +1,102 @@
 import { User } from "../models/User.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { v2 as cloudinary } from 'cloudinary';
+import fileUpload from 'express-fileupload'; // Ensure this middleware is used in your Express app
 
-const generateAccessAndRefreshTokens = async (userId) => {
-    const user = await User.findById(userId)
-    const accessToken = user.generateAccessToken()
-    const refreshToken = user.generateRefreshToken()
+async function uploading(file, folder) {
+    const options = {
+        folder,
+    };
 
-    user.refreshToken = refreshToken
-    await user.save({ validateBeforeSave: false })
-
-    return { accessToken, refreshToken }
+    return await cloudinary.uploader.upload(file.tempFilePath, options);
 }
 
-const registerUser = asyncHandler( async (req, res) => {
+const generateAccessAndRefreshTokens = async (userId) => {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
-    const { username, email, password } = req.body
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
-    if (!username || !email || !password) {
-        throw new ApiError(401, "All the fields are required")
+    return { accessToken, refreshToken };
+};
+
+const registerUser = asyncHandler(async (req, res) => {
+    console.log("Register called");
+    const { username, email, password } = req.body;
+    const coverImg = req.files?.coverImg; // Assuming coverImg is sent as a file
+
+    if (!username || !email || !password || !coverImg) {
+        throw new ApiError(401, "All the fields are required");
     }
-    let user = {};
-    
+
+    let coverImgUploaded;
     try {
-        user = await User.create({
-            username, email, password
-        })
+        coverImgUploaded = await uploading(coverImg, 'Users');
+        console.log("Image uploaded successfully:", coverImgUploaded);
     } catch (error) {
-        console.log("An error occured !! ")
-        throw new ApiError(410, 'User already registered');
+        console.error("Error uploading image:", error);
+        throw new ApiError(500, 'Failed to upload image');
     }
 
-    const createdUser = await User.findById(user._id)
+    let user;
+    try {
+        console.log("Creating user ......");
+        user = await User.create({
+            username,
+            email,
+            password,
+            avatar: coverImgUploaded.secure_url // Ensure the correct URL is used
+        });
+        console.log("User created......");
+    } catch (error) {
+        console.error("An error occurred while creating the user:", error);
+        if (error.code === 11000) { // Duplicate key error
+            throw new ApiError(410, 'User already registered');
+        } else {
+            throw new ApiError(500, 'Internal server error');
+        }
+    }
 
-    return res.status(200).json({ createdUser })
-})
+    const createdUser = await User.findById(user._id);
+    return res.status(200).json({ createdUser });
+});
 
-const loginUser = asyncHandler( async (req, res) => {
-    const { email, password } = req.body
-    const user = await User.findOne({ email })
+
+const loginUser = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
     if (!user) {
-        throw new ApiError(401, "Invalid email")
+        throw new ApiError(401, "Invalid email");
     }
 
-    const isPassTrue = await user.isPasswordCorrect(password)
+    const isPassTrue = await user.isPasswordCorrect(password);
     if (!isPassTrue) {
-        throw new ApiError(401, "Invalid password")
+        throw new ApiError(401, "Invalid password");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
-    const updatedUser = await User.findById(user._id).select("-password")
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+    const updatedUser = await User.findById(user._id).select("-password");
 
     const options = {
-        httpOnly: true,      
-        secure: false,       
-        sameSite: 'Lax',    
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
         maxAge: 24 * 60 * 60 * 1000
-    };[]
+    };
 
     return res.status(200)
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
         .json({ updatedUser, at: accessToken });
-})
-
-const logoutUser = asyncHandler( async (req, res) => {
-    const filter = { _id: req.user?._id }
-
-    await User.updateOne(
-        filter,
-        {
-            $unset: {
-                refreshToken: 1 // this removes the field from document
-            }
-        },
-        {
-            new: true
-        }
-    )
-
-    const updatedUser = await User.findById(req.user?._id)
-    return res.status(200)
-        .json({ updatedUser })
-})
+});
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user?._id)
+    const user = await User.findById(req.user?._id);
+    res.status(200).json({ user });
+});
 
-    res.status(200)
-        .json({ user })
-})
-
-
-export { registerUser, loginUser, logoutUser, getCurrentUser }
+export { registerUser, loginUser, getCurrentUser };

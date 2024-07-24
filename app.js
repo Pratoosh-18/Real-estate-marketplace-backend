@@ -1,14 +1,44 @@
-import cors from "cors"
-import express from "express" 
+import cors from "cors";
+import express from "express";
+import fileUpload from "express-fileupload";
+import userRoutes from "./src/routes/User.routes.js";
+import cloudinaryConfig from "./src/config/cloudinary.js";
+import listingRoutes from "./src/routes/Listing.routes.js";
 
-const app = express()
+// Initialize the Express app
+const app = express();
 
-app.use(cors())
+// Use CORS middleware
+app.use(cors());
 
-app.use(express.json())
-app.use(express.urlencoded())
+// Use JSON middleware for parsing application/json
+app.use(express.json());
 
-import userRoutes from "./src/routes/User.routes.js"
-app.use("/api/v1/user",userRoutes)
+// Use URL-encoded middleware for parsing application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
 
-export default app
+// Use file upload middleware
+app.use(fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}));
+
+// Configure Cloudinary
+cloudinaryConfig();
+
+// Use user routes
+app.use("/api/v1/user", userRoutes);
+
+// Use user routes
+app.use("/api/v1/listing", listingRoutes);
+
+// Error Handling Middleware (Optional)
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.statusCode || 500).json({
+        message: err.message || 'Internal Server Error'
+    });
+});
+
+// Export the app
+export default app;
