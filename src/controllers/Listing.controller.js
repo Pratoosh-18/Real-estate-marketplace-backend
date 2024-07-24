@@ -93,4 +93,34 @@ const getUserListings = asyncHandler(async (req, res) => {
     }
 });
 
-export { createListing,getListings,getUserListings };
+const buyListing = asyncHandler(async (req, res) => {
+    const { listingId } = req.body;
+    const { buyerEmail } = req.body;
+
+    if (!buyerEmail) {
+        throw new ApiError(400, 'Buyer email is required');
+    }
+
+    try {
+        const listing = await Listing.findById(listingId);
+
+        if (!listing) {
+            throw new ApiError(404, 'Listing not found');
+        }
+
+        if (listing.isSold) {
+            return res.status(200).json({ message: 'Listing is already sold' });
+        }
+        console.log("Listing is found")
+        listing.isSold = true;
+        listing.buyerEmail = buyerEmail;
+        await listing.save();
+
+        return res.status(200).json({ message: 'Listing purchased successfully' });
+    } catch (error) {
+        console.error("An error occurred while buying the listing:", error);
+        throw new ApiError(500, 'Internal server error');
+    }
+});
+
+export { createListing,getListings,getUserListings,buyListing };

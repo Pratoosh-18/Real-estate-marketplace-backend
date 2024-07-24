@@ -49,9 +49,16 @@ const listingSchema = new mongoose.Schema(
         imageUrls: {
             type: Array,
             required: true,
+        },
+        isSold: {
+            type: Boolean,
+            default: false
+        },
+        buyerEmail: {
+            type: String,
         }
     },
     { timestamps: true }
 );
 
-export const Listing = mongoose.model("Listing", listingSchema); 
+export const Listing = mongoose.model("Listing", listingSchema);
