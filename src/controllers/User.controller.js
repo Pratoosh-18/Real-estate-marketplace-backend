@@ -1,5 +1,5 @@
 import { User } from "../models/User.model.js";
-import { ApiError } from "../utils/ApiError.js";
+import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { v2 as cloudinary } from 'cloudinary';
 import fileUpload from 'express-fileupload'; // Ensure this middleware is used in your Express app
