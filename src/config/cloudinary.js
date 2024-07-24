@@ -1,11 +1,14 @@
 import { v2 as cloudinary } from 'cloudinary';
+import dotenv from "dotenv";
+
+dotenv.config()
 
 const cloudinaryConfig = async () => {
     try {
         cloudinary.config({
-            cloud_name: 'dtm2maxaf',
-            api_key: '331657973378695',
-            api_secret: 'hSR8XQ1SCf2GsVg9-LIgd04qLYI'
+            cloud_name: process.env.CLOUDINARY_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
         });
 
         await cloudinary.api.resources({ max_results: 1 });

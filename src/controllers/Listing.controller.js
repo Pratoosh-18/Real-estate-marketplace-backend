@@ -57,4 +57,40 @@ const createListing = asyncHandler(async (req, res) => {
     return res.status(200).json({ listing });
 });
 
-export { createListing };
+const getListings = asyncHandler(async (req, res) => {
+    try {
+        // Fetch all listings from the database
+        const listings = await Listing.find();
+        console.log("Listings retrieved successfully");
+
+        // Return the listings in the response
+        return res.status(200).json({ listings });
+    } catch (error) {
+        console.error("An error occurred while retrieving listings:", error);
+        throw new ApiError(500, 'Internal server error');
+    }
+});
+
+const getUserListings = asyncHandler(async (req, res) => {
+    const { email } = req.body; // Get email from request parameters
+
+    if (!email) {
+        throw new ApiError(400, "Email parameter is required");
+    }
+
+    try {
+        // Find listings where ownerEmail matches the provided email
+        const listings = await Listing.find({ ownerEmail: email });
+        if (listings.length === 0) {
+            return res.status(404).json({ message: "No listings found for this email" });
+        }
+
+        console.log("User listings retrieved successfully");
+        return res.status(200).json({ listings });
+    } catch (error) {
+        console.error("An error occurred while retrieving user listings:", error);
+        throw new ApiError(500, 'Internal server error');
+    }
+});
+
+export { createListing,getListings,getUserListings };
