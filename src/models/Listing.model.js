@@ -2,12 +2,9 @@ import mongoose from 'mongoose';
 
 const listingSchema = new mongoose.Schema(
     {
-        ownerName: {
-            type: String,
-            required: true,
-        },
-        ownerEmail: {
-            type: String,
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
             required: true,
         },
         name: {

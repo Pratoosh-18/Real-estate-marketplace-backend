@@ -1,4 +1,5 @@
 import { Listing } from "../models/Listing.model.js";
+import { User } from "../models/User.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { v2 as cloudinary } from 'cloudinary';
@@ -9,10 +10,9 @@ async function uploadImages(files, folder) {
 }
 
 const createListing = asyncHandler(async (req, res) => {
-
-    console.log("Listing called")
+    console.log("Listing called");
     const {
-        ownerName, ownerEmail, name, description, address,
+        ownerEmail, name, description, address,
         regularPrice, discountPrice, bathrooms, bedrooms,
         furnished, parking
     } = req.body;
@@ -20,7 +20,7 @@ const createListing = asyncHandler(async (req, res) => {
     const imageFiles = req.files?.images; // Assuming images are sent as a file array
 
     // Validate required fields
-    if (!ownerName || !ownerEmail || !name || !description || !address || 
+    if (!ownerEmail || !name || !description || !address || 
         !regularPrice || !discountPrice || !bathrooms || !bedrooms || 
         !furnished || !parking || !imageFiles) {
         throw new ApiError(401, "All the fields are required");
@@ -40,11 +40,18 @@ const createListing = asyncHandler(async (req, res) => {
 
     const imageUrls = uploadedImages.map(upload => upload.secure_url);
 
+    // Find the user by ownerEmail
+    const owner = await User.findOne({ email: ownerEmail });
+    if (!owner) {
+        throw new ApiError(404, 'Owner not found');
+    }
+
     let listing;
     try {
         console.log("Creating listing ......");
         listing = await Listing.create({
-            ownerName, ownerEmail, name, description, address,
+            owner: owner._id, // Set the owner field with the user's _id
+            name, description, address,
             regularPrice, discountPrice, bathrooms, bedrooms,
             furnished, parking, imageUrls
         });
@@ -59,8 +66,8 @@ const createListing = asyncHandler(async (req, res) => {
 
 const getListings = asyncHandler(async (req, res) => {
     try {
-        // Fetch all listings from the database
-        const listings = await Listing.find();
+        // Fetch all listings from the database and populate the owner field
+        const listings = await Listing.find().populate('owner', 'username email avatar');
         console.log("Listings retrieved successfully");
 
         // Return the listings in the response
@@ -80,7 +87,7 @@ const getUserListings = asyncHandler(async (req, res) => {
 
     try {
         // Find listings where ownerEmail matches the provided email
-        const listings = await Listing.find({ ownerEmail: email });
+        const listings = await Listing.find({ ownerEmail: email }).populate('owner', 'username email avatar');
         if (listings.length === 0) {
             return res.status(404).json({ message: "No listings found for this email" });
         }
@@ -123,4 +130,4 @@ const buyListing = asyncHandler(async (req, res) => {
     }
 });
 
-export { createListing,getListings,getUserListings,buyListing };
+export { createListing, getListings, getUserListings, buyListing };
