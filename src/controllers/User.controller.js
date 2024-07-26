@@ -62,7 +62,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const createdUser = await User.findById(user._id);
     return res.status(200).json({ createdUser });
-});
+}); 
 
 
 const loginUser = asyncHandler(async (req, res) => {

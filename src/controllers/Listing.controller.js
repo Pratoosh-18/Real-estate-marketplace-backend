@@ -16,12 +16,12 @@ const createListing = asyncHandler(async (req, res) => {
         regularPrice, discountPrice, bathrooms, bedrooms,
         furnished, parking
     } = req.body;
-    
+
     const imageFiles = req.files?.images; // Assuming images are sent as a file array
 
     // Validate required fields
-    if (!ownerEmail || !name || !description || !address || 
-        !regularPrice || !discountPrice || !bathrooms || !bedrooms || 
+    if (!ownerEmail || !name || !description || !address ||
+        !regularPrice || !discountPrice || !bathrooms || !bedrooms ||
         !furnished || !parking || !imageFiles) {
         throw new ApiError(401, "All the fields are required");
     }
@@ -130,4 +130,25 @@ const buyListing = asyncHandler(async (req, res) => {
     }
 });
 
-export { createListing, getListings, getUserListings, buyListing };
+const deleteListing = asyncHandler(async (req, res) => {
+    const { listingId } = req.body;
+
+    if (!listingId) {
+        res.status(400);
+        throw new Error('Listing ID is required');
+    }
+
+    const deletedListing = await Listing.findByIdAndDelete(listingId);
+
+    if (!deletedListing) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    res.status(200).json({
+        message: 'Listing deleted successfully',
+        deletedListing,
+    });
+});
+
+export { createListing, getListings, getUserListings, buyListing, deleteListing };
